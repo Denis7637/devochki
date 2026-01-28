@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Clicker 3D - Enhanced Edition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #ff00ff;
+            --secondary: #00ffff;
+            --accent: #ffd700;
+            --bg-dark: #050510;
+            --glass: rgba(20, 20, 35, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-shadow: 0 0 10px rgba(255, 0, 255, 0.5), 0 0 20px rgba(255, 0, 255, 0.3);
+            --cyan-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            font-family: 'Rajdhani', sans-serif;
+            color: white;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+        }
+
+        /* --- UI Styles --- */
+
+        /* Glass Panel Effect Helper */
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s;
+        }
+
+        .login-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .login-box {
+            padding: 60px;
+            border-radius: 30px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.2);
+            background: linear-gradient(145deg, rgba(20,20,35,0.9), rgba(10,10,20,0.95));
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated border line for login */
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--secondary), var(--primary), var(--secondary));
+            animation: slideGradient 2s linear infinite;
+        }
+
+        @keyframes slideGradient {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        .login-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            background: linear-gradient(to right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .login-subtitle {
+            font-size: 1.2rem;
+            color: var(--secondary);
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        /* Buttons */
+        button {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .connect-btn {
+            padding: 20px 40px;
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            width: 100%;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .connect-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 100%;
+            background: var(--primary);
+            transition: width 0.3s;
+            z-index: -1;
+        }
+
+        .connect-btn:hover {
+            color: white;
+            box-shadow: var(--neon-shadow);
+            transform: translateY(-2px);
+        }
+
+        .connect-btn:hover::before {
+            width: 100%;
+        }
+
+        .connect-btn.secondary {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+
+        .connect-btn.secondary::before {
+            background: var(--secondary);
+        }
+
+        .connect-btn.secondary:hover {
+            box-shadow: var(--cyan-shadow);
+            color: #000;
+        }
+
+        .username-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            margin: 10px 0;
+            transition: 0.3s;
+        }
+
+        .username-input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: var(--cyan-shadow);
+        }
+
+        /* Main Game UI */
+        .game-ui {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 25px;
+            border-radius: 20px;
+            z-index: 100;
+            min-width: 300px;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .wallet-badge {
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), transparent);
+            border-left: 3px solid var(--accent);
+            padding: 10px 15px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-badge-address {
+            color: var(--accent);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .disconnect-btn {
+            background: transparent;
+            border: 1px solid #ff4444;
+            color: #ff4444;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-top: 5px;
+        }
+        
+        .disconnect-btn:hover {
+            background: #ff4444;
+            color: white;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            font-size: 1.2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: white;
+            font-family: 'Orbitron', monospace;
+            font-weight: bold;
+        }
+
+        .coins {
+            font-size: 1.8rem;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .level-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 15px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .level-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            box-shadow: 0 0 10px var(--primary);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Menu Buttons */
+        .menu-buttons {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .menu-btn {
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: 3px solid transparent;
+            color: white;
+            text-align: left;
+            backdrop-filter: blur(5px);
+            font-size: 1.1rem;
+            width: 180px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 0, 255, 0.2);
+            border-left-color: var(--primary);
+            padding-left: 30px;
+            box-shadow: var(--neon-shadow);
+        }
+
+        .menu-btn.active {
+            background: rgba(0, 255, 255, 0.15);
+            border-left-color: var(--secondary);
+            color: var(--secondary);
+            box-shadow: var(--cyan-shadow);
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-content {
+            background: rgba(20, 20, 30, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid var(--primary);
+            box-shadow: 0 0 50px rgba(255, 0, 255, 0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+        }
+
+        .modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            color: white;
+            text-shadow: 0 0 10px var(--primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 2.5rem;
+            transition: 0.3s;
+        }
+
+        .close-btn:hover {
+            color: white;
+            transform: rotate(90deg);
+        }
+
+        /* Grid & Cards */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        .character-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--secondary);
+            box-shadow: var(--cyan-shadow);
+        }
+
+        .character-card.owned {
+            border-color: #00ff00;
+        }
+
+        .character-card.selected {
+            border-color: var(--accent);
+            background: rgba(255, 215, 0, 0.05);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .character-card.locked {
+            opacity: 0.6;
+        }
+
+        .character-name {
+            font-family: 'Orbitron';
+            font-size: 1.3rem;
+            margin: 15px 0;
+            color: white;
+        }
+
+        .character-tier {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .character-tier.legendary { color: #ffd700; text-shadow: 0 0 5px #ffd700; }
+        .character-tier.epic { color: #a335ee; text-shadow: 0 0 5px #a335ee; }
+        .character-tier.rare { color: #0070dd; text-shadow: 0 0 5px #0070dd; }
+        .character-tier.uncommon { color: #1eff00; text-shadow: 0 0 5px #1eff00; }
+
+        .buy-btn, .select-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .buy-btn {
+            background: var(--accent);
+            color: black;
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            background: #ffe033;
+            box-shadow: 0 0 15px var(--accent);
+        }
+        
+        .buy-btn:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        .select-btn {
+            background: transparent;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .select-btn:hover {
+            background: #00ff00;
+            color: black;
+        }
+
+        /* Leaderboard Table */
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .leaderboard-table th {
+            color: var(--secondary);
+            font-family: 'Orbitron';
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid var(--secondary);
+            letter-spacing: 1px;
+        }
+
+        .leaderboard-table td {
+            padding: 20px;
+            background: rgba(255,255,255,0.03);
+            border-top: 1px solid transparent;
+            border-bottom: 1px solid transparent;
+        }
+
+        .leaderboard-table tr:hover td {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .leaderboard-table tr td:first-child {
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+        .leaderboard-table tr td:last-child {
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+
+        .leaderboard-table tr.current-user td {
+            background: rgba(255, 0, 255, 0.15);
+            border-top: 1px solid var(--primary);
+            border-bottom: 1px solid var(--primary);
+        }
+        
+        .leaderboard-table tr.current-user td:first-child { border-left: 1px solid var(--primary); }
+        .leaderboard-table tr.current-user td:last-child { border-right: 1px solid var(--primary); }
+
+        .rank-1 { color: #ffd700; text-shadow: 0 0 10px #ffd700; font-size: 1.2rem; }
+        .rank-2 { color: #c0c0c0; text-shadow: 0 0 10px #c0c0c0; }
+        .rank-3 { color: #cd7f32; text-shadow: 0 0 10px #cd7f32; }
+
+        .leaderboard-refresh {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 10px;
+            color: var(--secondary);
+            font-family: 'Orbitron';
+        }
+
+        /* Floating Click Effect */
+        .click-effect {
+            position: fixed;
+            color: var(--accent);
+            font-family: 'Orbitron';
+            font-weight: 900;
+            font-size: 2rem;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards cubic-bezier(0, .9, .57, 1);
+            z-index: 999;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px var(--accent);
+            -webkit-text-stroke: 1px black;
+        }
+
+        @keyframes floatUp {
+            0% { transform: scale(0.5) translateY(0) rotate(0deg); opacity: 0; }
+            20% { transform: scale(1.2) translateY(-20px) rotate(-5deg); opacity: 1; }
+            100% { transform: scale(1) translateY(-120px) rotate(5deg); opacity: 0; }
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 25px;
+            border-radius: 50px;
+            backdrop-filter: blur(5px);
+            color: #aaa;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+        @media (max-width: 768px) {
+            .menu-buttons { top: auto; bottom: 20px; left: 20px; right: 20px; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+            .menu-btn { width: auto; padding: 10px 15px; font-size: 0.9rem; }
+            .game-ui { top: 10px; right: 10px; left: 10px; width: auto; min-width: 0; }
+            .login-title { font-size: 2rem; }
+            .controls { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <div class="login-title">Neon Clicker</div>
+            <div class="login-subtitle">Enhanced Edition</div>
+            
+            <button class="connect-btn" onclick="connectWallet()">
+                👛 Connect Phantom
+            </button>
+            
+            <div style="margin: 25px 0; color: #666; font-size: 0.9rem;">— OR —</div>
+            
+            <input type="text" id="usernameInput" class="username-input" placeholder="Введите ваше имя..." maxlength="15">
+            <button class="connect-btn secondary" onclick="connectAsGuest()">
+                🕹️ Играть как гость
+            </button>
+            
+            <div id="walletInfo" class="wallet-info" style="display: none; margin-top: 20px;">
+                <div style="color: #00ff00; margin-bottom: 10px; font-family: 'Orbitron';">ДОСТУП ПОЛУЧЕН</div>
+                <div class="wallet-address" id="walletAddress" style="color: #aaa; font-size: 0.8rem;"></div>
+                <button class="connect-btn" onclick="startGame()" style="margin-top: 15px; background: var(--primary); color: white;">
+                    🚀 НАЧАТЬ ИГРУ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+    
+    <div id="status" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--primary); font-family:'Orbitron'; font-size:1.5rem; text-shadow:0 0 20px var(--primary); z-index:999;">ЗАГРУЗКА NEON CITY...</div>
+
+    <div class="menu-buttons">
+        <button class="menu-btn active" onclick="closeAllModals()">🎮 СИСТЕМА</button>
+        <button class="menu-btn" onclick="openShop()">💃 МАГАЗИН</button>
+        <button class="menu-btn" onclick="openUpgrades()">⬆️ УЛУЧШЕНИЯ</button>
+        <button class="menu-btn" onclick="openLeaderboard()">🏆 РЕЙТИНГ</button>
+    </div>
+
+    <div class="game-ui">
+        <div class="wallet-badge" id="walletBadge">
+            <div style="font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 5px;">Игрок</div>
+            <div class="wallet-badge-address" id="connectedWallet"></div>
+            <button class="disconnect-btn" onclick="disconnectWallet()">ВЫХОД</button>
+        </div>
+        
+        <div class="stat-row">
+            <span class="stat-label">МОНЕТЫ</span>
+            <span class="stat-value coins" id="coinCount">0</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">КЛИКОВ</span>
+            <span class="stat-value" id="clickCount">0</span>
+        </div>
+        
+        <div class="stat-row" style="margin-top: 20px;">
+            <span class="stat-label">УРОВЕНЬ <span id="levelDisplay" style="color:var(--secondary)">1</span></span>
+        </div>
+        <div class="level-bar">
+            <div class="level-progress" id="levelProgress"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+            <div>
+                <div style="font-size: 0.7rem; color: #aaa;">СИЛА КЛИКА</div>
+                <div class="stat-value" id="clickPower" style="color: var(--primary);">1</div>
+            </div>
+            <div>
+                <div style="font-size: 0.7rem; color: #aaa;">АВТО/СЕК</div>
+                <div class="stat-value" id="autoClicks" style="color: var(--secondary);">0</div>
+            </div>
+        </div>
+        
+        <div class="stat-row" style="margin-top: 15px; font-size: 0.9rem;">
+            <span class="stat-label">ПЕРСОНАЖ:</span>
+            <span class="stat-value" id="currentCharacter" style="color: white;">Basic</span>
+        </div>
+    </div>
+
+    <div id="shopModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">💃 МАГАЗИН ПЕРСОНАЖЕЙ</h2>
+                <button class="close-btn" onclick="closeAllModals()">×</button>
+            </div>
+            <div class="shop-grid" id="shopGrid"></div>
+        </div>
+    </div>
+
+    <div id="upgradesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">⬆️ УЛУЧШЕНИЯ</h2>
+                <button class="close-btn" onclick="closeAllModals()">×</button>
+            </div>
+            <div class="upgrade-list" id="upgradeList" style="display: flex; flex-direction: column; gap: 15px;"></div>
+        </div>
+    </div>
+
+    <div id="leaderboardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🏆 ГЛОБАЛЬНЫЙ РЕЙТИНГ</h2>
+                <button class="close-btn" onclick="closeAllModals()">×</button>
+            </div>
+            <div class="leaderboard-refresh" id="leaderboardStatus">
+                Загрузка рейтинга...
+            </div>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>МЕСТО</th>
+                        <th>ИМЯ</th>
+                        <th>УРОВЕНЬ</th>
+                        <th>МОНЕТЫ</th>
+                        <th>КЛИКОВ</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboardBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="controls">
+        [ЛКМ] КЛИК • [ВРАЩЕНИЕ] КАМЕРА • [СКРОЛЛ] ЗУМ
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script>
+        // Solana integration
+        let walletAddress = null;
+        let isGuest = false;
+        let currentUsername = null;
+
+        // Game State
+        const gameState = {
+            coins: 0,
+            clicks: 0,
+            level: 1,
+            xp: 0,
+            clickPower: 1,
+            autoClickRate: 0,
+            currentCharacter: 'basic',
+            ownedCharacters: ['basic'],
+            upgrades: {
+                clickMultiplier: 0,
+                autoClicker: 0,
+                superClicker: 0
+            }
+        };
+
+        // РАСШИРЕННЫЙ СПИСОК ПЕРСОНАЖЕЙ (20 девушек!)
+        const characters = {
+            // СТАРТОВЫЕ (COMMON)
+            basic: { 
+                name: 'Cyber Pink', 
+                price: 0, 
+                bonus: 1, 
+                color: 0xff00ff, 
+                hairColor: 0x222222,
+                tier: 'common',
+                description: 'Базовая кибер-девушка'
+            },
+            
+            // UNCOMMON (Зелёные)
+            blonde: { 
+                name: 'Neon Gold', 
+                price: 100, 
+                bonus: 1.5, 
+                color: 0x00ffff, 
+                hairColor: 0xffd700,
+                tier: 'uncommon',
+                description: 'Золотистая красотка'
+            },
+            azure: { 
+                name: 'Azure Dream', 
+                price: 150, 
+                bonus: 1.6, 
+                color: 0x007fff, 
+                hairColor: 0x87ceeb,
+                tier: 'uncommon',
+                description: 'Лазурная мечта'
+            },
+            mint: { 
+                name: 'Mint Fresh', 
+                price: 200, 
+                bonus: 1.7, 
+                color: 0x98ff98, 
+                hairColor: 0x00ff7f,
+                tier: 'uncommon',
+                description: 'Освежающая мята'
+            },
+            
+            // RARE (Синие)
+            redhead: { 
+                name: 'Plasma Red', 
+                price: 500, 
+                bonus: 2, 
+                color: 0xff0000, 
+                hairColor: 0xff4500,
+                tier: 'rare',
+                description: 'Огненная красавица'
+            },
+            violet: { 
+                name: 'Violet Storm', 
+                price: 600, 
+                bonus: 2.1, 
+                color: 0x9400d3, 
+                hairColor: 0xee82ee,
+                tier: 'rare',
+                description: 'Фиолетовая буря'
+            },
+            brunette: { 
+                name: 'Stealth Ops', 
+                price: 750, 
+                bonus: 2.3, 
+                color: 0x333333, 
+                hairColor: 0x000000,
+                tier: 'rare',
+                description: 'Тёмный агент'
+            },
+            emerald: { 
+                name: 'Emerald Queen', 
+                price: 900, 
+                bonus: 2.5, 
+                color: 0x50c878, 
+                hairColor: 0x00a86b,
+                tier: 'rare',
+                description: 'Изумрудная королева'
+            },
+            
+            // EPIC (Фиолетовые)
+            exotic: { 
+                name: 'Solar Flare', 
+                price: 1500, 
+                bonus: 3, 
+                color: 0xffa500, 
+                hairColor: 0xffffff,
+                tier: 'epic',
+                description: 'Солнечная вспышка'
+            },
+            electric: { 
+                name: 'Electric Blue', 
+                price: 1800, 
+                bonus: 3.2, 
+                color: 0x7df9ff, 
+                hairColor: 0x0047ab,
+                tier: 'epic',
+                description: 'Электрическая синева'
+            },
+            crimson: { 
+                name: 'Crimson Blade', 
+                price: 2100, 
+                bonus: 3.5, 
+                color: 0xdc143c, 
+                hairColor: 0x8b0000,
+                tier: 'epic',
+                description: 'Багровое лезвие'
+            },
+            silver: { 
+                name: 'Silver Shadow', 
+                price: 2500, 
+                bonus: 3.8, 
+                color: 0xc0c0c0, 
+                hairColor: 0x708090,
+                tier: 'epic',
+                description: 'Серебряная тень'
+            },
+            
+            // LEGENDARY (Золотые)
+            vip: { 
+                name: 'Quantum Queen', 
+                price: 4000, 
+                bonus: 4.5, 
+                color: 0xffffff, 
+                hairColor: 0xff00ff,
+                tier: 'legendary',
+                description: 'Квантовая королева'
+            },
+            aurora: { 
+                name: 'Aurora Borealis', 
+                price: 5000, 
+                bonus: 5, 
+                color: 0x00ff7f, 
+                hairColor: 0xff69b4,
+                tier: 'legendary',
+                description: 'Северное сияние'
+            },
+            galaxy: { 
+                name: 'Galaxy Goddess', 
+                price: 6500, 
+                bonus: 5.5, 
+                color: 0x4b0082, 
+                hairColor: 0xffd700,
+                tier: 'legendary',
+                description: 'Богиня галактики'
+            },
+            phoenix: { 
+                name: 'Phoenix Fire', 
+                price: 8000, 
+                bonus: 6, 
+                color: 0xff4500, 
+                hairColor: 0xffff00,
+                tier: 'legendary',
+                description: 'Огонь феникса'
+            },
+            nebula: { 
+                name: 'Nebula Nova', 
+                price: 10000, 
+                bonus: 7, 
+                color: 0xff1493, 
+                hairColor: 0x00ffff,
+                tier: 'legendary',
+                description: 'Туманность'
+            },
+            infinity: { 
+                name: 'Infinity Empress', 
+                price: 15000, 
+                bonus: 8, 
+                color: 0x9932cc, 
+                hairColor: 0xffd700,
+                tier: 'legendary',
+                description: 'Императрица бесконечности'
+            },
+            cosmic: { 
+                name: 'Cosmic Divine', 
+                price: 20000, 
+                bonus: 10, 
+                color: 0x00ced1, 
+                hairColor: 0xff1493,
+                tier: 'legendary',
+                description: 'Космическая божественность'
+            },
+            ultimate: { 
+                name: 'Ultimate Goddess', 
+                price: 50000, 
+                bonus: 15, 
+                color: 0xffd700, 
+                hairColor: 0xff00ff,
+                tier: 'legendary',
+                description: 'Абсолютная богиня'
+            }
+        };
+
+        // Upgrades
+        const upgrades = {
+            clickMultiplier: { name: 'Гидравлический пресс', description: 'Увеличивает силу клика', baseCost: 50, multiplier: 1.5, effect: 2 },
+            autoClicker: { name: 'AI Bot Net', description: 'Пассивный доход', baseCost: 100, multiplier: 2, effect: 1 },
+            superClicker: { name: 'Разгон', description: 'Максимальная мощность', baseCost: 250, multiplier: 2.5, effect: 5 }
+        };
+
+        // --- WALLET & LOGIN ---
+        
+        async function connectWallet() {
+            try {
+                if (!window.solana || !window.solana.isPhantom) {
+                    showNotification('Требуется Phantom Wallet', true);
+                    window.open('https://phantom.app/', '_blank');
+                    return;
+                }
+                const resp = await window.solana.connect();
+                walletAddress = resp.publicKey.toString();
+                currentUsername = walletAddress.slice(0, 8) + '...';
+                document.getElementById('walletAddress').textContent = walletAddress;
+                document.getElementById('walletInfo').style.display = 'block';
+                showNotification('СИСТЕМА ПОДКЛЮЧЕНА');
+            } catch (err) {
+                showNotification('Ошибка подключения: ' + err.message, true);
+            }
+        }
+
+        function connectAsGuest() {
+            const username = document.getElementById('usernameInput').value.trim();
+            if (!username || username.length < 3) {
+                showNotification('Имя слишком короткое (мин. 3 символа)', true);
+                return;
+            }
+            isGuest = true;
+            currentUsername = username;
+            walletAddress = 'guest_' + username + '_' + Date.now();
+            document.getElementById('walletAddress').textContent = username;
+            document.getElementById('walletInfo').style.display = 'block';
+            showNotification('ГОСТЕВОЙ ДОСТУП');
+        }
+
+        function disconnectWallet() {
+            if (confirm('Вы уверены? Прогресс будет сохранён.')) {
+                saveGame();
+                location.reload();
+            }
+        }
+
+        async function startGame() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('connectedWallet').textContent = currentUsername;
+            
+            // Load saved game
+            await loadGame();
+            
+            // Initialize 3D scene
+            setTimeout(() => {
+                initThreeJS();
+                document.getElementById('status').style.display = 'none';
+            }, 500);
+            
+            updateUI();
+        }
+
+        // --- GAME SAVE/LOAD WITH PERSISTENT STORAGE ---
+        
+        async function saveGame() {
+            if (!walletAddress) return;
+            
+            const saveData = {
+                ...gameState,
+                username: currentUsername,
+                lastSaved: Date.now()
+            };
+            
+            try {
+                // Сохраняем личные данные игрока
+                await window.storage.set(`player_${walletAddress}`, JSON.stringify(saveData), false);
+                
+                // Обновляем лидерборд (общие данные)
+                await updateLeaderboard();
+                
+                console.log('Игра сохранена');
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                // Fallback to localStorage if storage API fails
+                localStorage.setItem('neon_clicker_' + walletAddress, JSON.stringify(saveData));
+            }
+        }
+
+        async function loadGame() {
+            if (!walletAddress) return;
+            
+            try {
+                const result = await window.storage.get(`player_${walletAddress}`, false);
+                if (result && result.value) {
+                    const saveData = JSON.parse(result.value);
+                    Object.assign(gameState, saveData);
+                    console.log('Игра загружена');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                // Fallback to localStorage
+                const saved = localStorage.getItem('neon_clicker_' + walletAddress);
+                if (saved) {
+                    const saveData = JSON.parse(saved);
+                    Object.assign(gameState, saveData);
+                }
+            }
+        }
+
+        async function updateLeaderboard() {
+            try {
+                const lbEntry = {
+                    username: currentUsername,
+                    level: gameState.level,
+                    coins: Math.floor(gameState.coins),
+                    clicks: gameState.clicks,
+                    timestamp: Date.now()
+                };
+                
+                // Сохраняем запись лидерборда (общая, доступна всем)
+                await window.storage.set(`leaderboard_${walletAddress}`, JSON.stringify(lbEntry), true);
+            } catch (error) {
+                console.error('Ошибка обновления лидерборда:', error);
+            }
+        }
+
+        async function loadLeaderboard() {
+            try {
+                document.getElementById('leaderboardStatus').textContent = 'Загрузка...';
+                
+                // Получаем все ключи лидерборда
+                const result = await window.storage.list('leaderboard_', true);
+                
+                if (!result || !result.keys) {
+                    document.getElementById('leaderboardStatus').textContent = 'Рейтинг пуст. Будьте первым!';
+                    return;
+                }
+                
+                // Загружаем данные каждого игрока
+                const players = [];
+                for (const key of result.keys) {
+                    try {
+                        const playerData = await window.storage.get(key, true);
+                        if (playerData && playerData.value) {
+                            players.push(JSON.parse(playerData.value));
+                        }
+                    } catch (e) {
+                        console.error('Ошибка загрузки игрока:', e);
+                    }
+                }
+                
+                // Сортируем по монетам
+                players.sort((a, b) => b.coins - a.coins);
+                
+                // Отображаем топ-50
+                const tbody = document.getElementById('leaderboardBody');
+                tbody.innerHTML = '';
+                
+                const top50 = players.slice(0, 50);
+                top50.forEach((player, index) => {
+                    const rank = index + 1;
+                    const isCurrentUser = player.username === currentUsername;
+                    
+                    const tr = document.createElement('tr');
+                    if (isCurrentUser) tr.classList.add('current-user');
+                    
+                    let rankClass = '';
+                    if (rank === 1) rankClass = 'rank-1';
+                    else if (rank === 2) rankClass = 'rank-2';
+                    else if (rank === 3) rankClass = 'rank-3';
+                    
+                    tr.innerHTML = `
+                        <td class="${rankClass}" style="font-family: 'Orbitron'; font-weight: bold;">#${rank}</td>
+                        <td style="font-family: 'Orbitron';">${player.username}${isCurrentUser ? ' (ВЫ)' : ''}</td>
+                        <td>${player.level}</td>
+                        <td style="color: var(--accent);">${player.coins.toLocaleString()}</td>
+                        <td style="color: #aaa;">${player.clicks.toLocaleString()}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('leaderboardStatus').textContent = 
+                    `Всего игроков: ${players.length} | Обновлено: ${new Date().toLocaleTimeString()}`;
+                    
+            } catch (error) {
+                console.error('Ошибка загрузки лидерборда:', error);
+                document.getElementById('leaderboardStatus').textContent = 'Ошибка загрузки рейтинга';
+            }
+        }
+
+        // --- GAME LOGIC ---
+        
+        function updateUI() {
+            document.getElementById('coinCount').textContent = Math.floor(gameState.coins);
+            document.getElementById('clickCount').textContent = gameState.clicks;
+            document.getElementById('levelDisplay').textContent = gameState.level;
+            document.getElementById('currentCharacter').textContent = characters[gameState.currentCharacter].name;
+            
+            const clickPower = gameState.clickPower * characters[gameState.currentCharacter].bonus;
+            document.getElementById('clickPower').textContent = clickPower.toFixed(1);
+            document.getElementById('autoClicks').textContent = gameState.autoClickRate.toFixed(1);
+            
+            const xpForNextLevel = gameState.level * 100;
+            const progress = (gameState.xp / xpForNextLevel) * 100;
+            document.getElementById('levelProgress').style.width = Math.min(progress, 100) + '%';
+        }
+
+        function addCoins(amount) {
+            gameState.coins += amount;
+            gameState.xp += amount;
+            const xpForNextLevel = gameState.level * 100;
+            if (gameState.xp >= xpForNextLevel) {
+                gameState.level++;
+                gameState.xp = 0;
+                showNotification(`⚡ УРОВЕНЬ ${gameState.level} ДОСТИГНУТ!`);
+            }
+            updateUI();
+        }
+
+        setInterval(() => {
+            if (gameState.autoClickRate > 0) addCoins(gameState.autoClickRate / 10);
+        }, 100);
+
+        function showNotification(message, isError = false) {
+            const el = document.createElement('div');
+            el.style.cssText = `
+                position: fixed; top: 100px; right: 20px; 
+                background: rgba(0,0,0,0.9); border-left: 4px solid ${isError ? '#ff0000' : '#00ff00'};
+                color: white; padding: 15px 25px; border-radius: 5px; z-index: 2000;
+                font-family: 'Orbitron'; font-size: 0.9rem; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+                animation: slideIn 0.3s forwards;
+            `;
+            el.textContent = message;
+            document.body.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(50px)';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+
+        function showClickEffect(x, y, amount) {
+            const effect = document.createElement('div');
+            effect.className = 'click-effect';
+            effect.textContent = '+' + amount.toFixed(0);
+            effect.style.left = x + 'px';
+            effect.style.top = y + 'px';
+            document.body.appendChild(effect);
+            setTimeout(() => effect.remove(), 800);
+        }
+
+        // --- UI MODALS ---
+
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('.menu-btn').classList.add('active');
+        }
+
+        function openShop() {
+            closeAllModals();
+            document.getElementById('shopModal').classList.add('active');
+            document.querySelectorAll('.menu-btn')[1].classList.add('active');
+            
+            const grid = document.getElementById('shopGrid');
+            grid.innerHTML = '';
+            
+            Object.keys(characters).forEach(key => {
+                const char = characters[key];
+                const owned = gameState.ownedCharacters.includes(key);
+                const selected = gameState.currentCharacter === key;
+                const canAfford = gameState.coins >= char.price;
+                
+                const card = document.createElement('div');
+                card.className = 'character-card' + (owned ? ' owned' : '') + (selected ? ' selected' : '') + (!owned && !canAfford ? ' locked' : '');
+                
+                let btnHtml = '';
+                if (!owned) {
+                    btnHtml = `<button class="buy-btn" onclick="buyCharacter('${key}')" ${!canAfford ? 'disabled' : ''}>${canAfford ? `КУПИТЬ ${char.price}💰` : 'НЕДОСТАТОЧНО МОНЕТ'}</button>`;
+                } else {
+                    btnHtml = selected ? '<button class="select-btn" disabled>ЭКИПИРОВАН</button>' : `<button class="select-btn" onclick="selectCharacter('${key}')">ЭКИПИРОВАТЬ</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="character-tier ${char.tier}">${char.tier.toUpperCase()}</div>
+                    <div style="font-size: 3rem; text-shadow: 0 0 15px ${'#'+char.color.toString(16).padStart(6, '0')};">●</div>
+                    <div class="character-name">${char.name}</div>
+                    <div style="color:#888; font-size:0.8rem; margin: 5px 0;">${char.description}</div>
+                    <div style="color:#aaa; font-size:0.9rem;">Бонус: <span style="color: var(--accent);">+${((char.bonus - 1) * 100).toFixed(0)}%</span></div>
+                    ${btnHtml}
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function buyCharacter(key) {
+            const char = characters[key];
+            if (gameState.coins >= char.price) {
+                gameState.coins -= char.price;
+                gameState.ownedCharacters.push(key);
+                showNotification(`✨ ПОЛУЧЕНО: ${char.name}`);
+                openShop(); 
+                updateUI(); 
+                saveGame();
+            }
+        }
+
+        function selectCharacter(key) {
+            gameState.currentCharacter = key;
+            showNotification(`👗 ЭКИПИРОВАНО: ${characters[key].name}`);
+            openShop(); 
+            updateUI(); 
+            saveGame();
+            if (window.updateCharacterModel) window.updateCharacterModel();
+        }
+
+        function openUpgrades() {
+            closeAllModals();
+            document.getElementById('upgradesModal').classList.add('active');
+            document.querySelectorAll('.menu-btn')[2].classList.add('active');
+            
+            const list = document.getElementById('upgradeList');
+            list.innerHTML = '';
+            
+            Object.keys(upgrades).forEach(key => {
+                const upg = upgrades[key];
+                const level = gameState.upgrades[key];
+                const cost = Math.floor(upg.baseCost * Math.pow(upg.multiplier, level));
+                const canAfford = gameState.coins >= cost;
+                
+                const item = document.createElement('div');
+                item.style.cssText = `background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.1);`;
+                
+                item.innerHTML = `
+                    <div>
+                        <div style="font-family:'Orbitron'; font-size:1.1rem; color:var(--secondary);">${upg.name}</div>
+                        <div style="color:#888; font-size:0.85rem; margin-top:5px;">${upg.description}</div>
+                        <div style="color:var(--primary); font-size:0.8rem; margin-top:5px;">Эффект: +${upg.effect * (level + 1)}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-family:'Orbitron'; margin-bottom:5px;">УР. ${level}</div>
+                        <button class="buy-btn" style="width:auto; padding:8px 20px;" onclick="buyUpgrade('${key}')" ${!canAfford ? 'disabled' : ''}>
+                            ${cost} 💰
+                        </button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function buyUpgrade(key) {
+            const upg = upgrades[key];
+            const level = gameState.upgrades[key];
+            const cost = Math.floor(upg.baseCost * Math.pow(upg.multiplier, level));
+            if (gameState.coins >= cost) {
+                gameState.coins -= cost;
+                gameState.upgrades[key]++;
+                if (key === 'clickMultiplier') gameState.clickPower += upg.effect;
+                else if (key === 'autoClicker') gameState.autoClickRate += upg.effect;
+                else if (key === 'superClicker') gameState.clickPower += upg.effect;
+                showNotification(`⬆️ ${upg.name} улучшено!`);
+                openUpgrades(); 
+                updateUI(); 
+                saveGame();
+            }
+        }
+
+        async function openLeaderboard() {
+            closeAllModals();
+            document.getElementById('leaderboardModal').classList.add('active');
+            document.querySelectorAll('.menu-btn')[3].classList.add('active');
+            
+            await loadLeaderboard();
+        }
+
+        // --- THREE.JS 3D SCENE ---
+        
+        let scene, camera, renderer, currentFigure, starField;
+        const jigglePosition = { x: 0, y: 0, z: 0 };
+        const jiggleVelocity = { x: 0, y: 0, z: 0 };
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 10, 50);
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.5, 5);
+            camera.lookAt(0, 1, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+            
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            
+            const pinkLight = new THREE.PointLight(0xff00ff, 1, 10);
+            pinkLight.position.set(2, 2, 2);
+            scene.add(pinkLight);
+            
+            const blueLight = new THREE.PointLight(0x00ffff, 1, 10);
+            blueLight.position.set(-2, 2, 2);
+            scene.add(blueLight);
+            
+            createStars();
+            currentFigure = createFigure(scene);
+            
+            // Raycaster for clicks
+            const raycaster = new THREE.Raycaster();
+            const mouse = new THREE.Vector2();
+            
+            container.addEventListener('click', (e) => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse, camera);
+                
+                const intersects = raycaster.intersectObjects(currentFigure.group.children, true);
+                if (intersects.length > 0) {
+                    const hit = intersects[0];
+                    if (hit.object.userData.clickable) {
+                        handleGameClick(e.clientX, e.clientY, hit.point);
+                        jiggleVelocity.y = 0.15;
+                        jiggleVelocity.z = -0.1;
+                    }
+                }
+            });
+            
+            // Camera controls (simple drag)
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+            
+            container.addEventListener('mousedown', () => { isDragging = true; });
+            container.addEventListener('mouseup', () => { isDragging = false; });
+            container.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - previousMousePosition.x;
+                    currentFigure.group.rotation.y += deltaX * 0.01;
+                }
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            
+            container.addEventListener('wheel', (e) => {
+                camera.position.z += e.deltaY * 0.005;
+                camera.position.z = Math.max(3, Math.min(camera.position.z, 10));
+            });
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Animation Loop
+            const clock = new THREE.Clock();
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = clock.getElapsedTime();
+
+                // Physics (Jiggle)
+                jiggleVelocity.x += -jigglePosition.x * 0.2;
+                jiggleVelocity.y += -jigglePosition.y * 0.2;
+                jiggleVelocity.z += -jigglePosition.z * 0.2;
+                jiggleVelocity.x *= 0.9;
+                jiggleVelocity.y *= 0.9;
+                jiggleVelocity.z *= 0.9;
+                jigglePosition.x += jiggleVelocity.x;
+                jigglePosition.y += jiggleVelocity.y;
+                jigglePosition.z += jiggleVelocity.z;
+
+                currentFigure.hips.position.y = 0.5 + jigglePosition.y;
+                currentFigure.hips.position.z = -0.1 + jigglePosition.z;
+                currentFigure.bikiniBottom.position.copy(currentFigure.hips.position);
+
+                // Idle float
+                currentFigure.group.position.y = Math.sin(time) * 0.05;
+
+                // Move lights
+                pinkLight.position.x = Math.sin(time * 0.5) * 4;
+                pinkLight.position.z = Math.cos(time * 0.5) * 4;
+                blueLight.position.x = Math.sin(time * 0.5 + Math.PI) * 4;
+                blueLight.position.z = Math.cos(time * 0.5 + Math.PI) * 4;
+
+                // Rotate stars
+                starField.rotation.y += 0.0005;
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.updateCharacterModel = function() {
+                scene.remove(currentFigure.group);
+                currentFigure = createFigure(scene);
+            };
+        }
+
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [];
+            for (let i = 0; i < 2000; i++) {
+                vertices.push(
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100,
+                    (Math.random() - 0.5) * 100
+                );
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+        }
+
+        function handleGameClick(x, y, point) {
+            gameState.clicks++;
+            const earned = gameState.clickPower * characters[gameState.currentCharacter].bonus;
+            addCoins(earned);
+            showClickEffect(x, y, earned);
+            createNeonRipple(point);
+            playSynthSound();
+        }
+
+        function createFigure(scene) {
+            const group = new THREE.Group();
+            const char = characters[gameState.currentCharacter];
+
+            // Materials with PBR for better look
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.4, metalness: 0 });
+            
+            // Neon Material for clothes
+            const clothMat = new THREE.MeshStandardMaterial({ 
+                color: char.color, 
+                roughness: 0.2, 
+                metalness: 0.8,
+                emissive: char.color,
+                emissiveIntensity: 0.4
+            });
+            
+            const hairMat = new THREE.MeshStandardMaterial({ color: char.hairColor, roughness: 0.7 });
+
+            // --- Constructing Body Parts (Simplified for brevity but styled) ---
+            
+            // Hips (Clickable Target)
+            const hipsGeo = new THREE.SphereGeometry(0.28, 32, 32);
+            const hips = new THREE.Mesh(hipsGeo, skinMat);
+            hips.position.set(0, 0.5, -0.1);
+            hips.scale.set(1.3, 1, 1.4);
+            hips.castShadow = true;
+            hips.userData.clickable = true;
+            group.add(hips);
+
+            const bikiniBot = new THREE.Mesh(new THREE.SphereGeometry(0.29, 32, 32), clothMat);
+            bikiniBot.position.copy(hips.position);
+            bikiniBot.scale.set(1.3, 0.5, 1.4);
+            bikiniBot.castShadow = true;
+            bikiniBot.userData.clickable = true;
+            group.add(bikiniBot);
+
+            // Legs
+            const legGeo = new THREE.CylinderGeometry(0.13, 0.1, 0.7, 16);
+            const legL = new THREE.Mesh(legGeo, skinMat);
+            legL.position.set(-0.22, -0.1, 0);
+            legL.castShadow = true;
+            group.add(legL);
+            const legR = legL.clone();
+            legR.position.set(0.22, -0.1, 0);
+            group.add(legR);
+
+            const bootGeo = new THREE.CylinderGeometry(0.11, 0.08, 0.6, 16);
+            const bootL = new THREE.Mesh(bootGeo, clothMat);
+            bootL.position.set(-0.25, -0.7, 0);
+            group.add(bootL);
+            const bootR = bootL.clone();
+            bootR.position.set(0.25, -0.7, 0);
+            group.add(bootR);
+
+            // Torso
+            const torsoGeo = new THREE.CylinderGeometry(0.22, 0.28, 0.6, 32);
+            const torso = new THREE.Mesh(torsoGeo, skinMat);
+            torso.position.y = 1;
+            torso.scale.set(1, 1, 0.7);
+            group.add(torso);
+
+            // Chest
+            const chestGeo = new THREE.SphereGeometry(0.18, 32, 32);
+            const chestL = new THREE.Mesh(chestGeo, clothMat);
+            chestL.position.set(-0.16, 1.25, 0.15);
+            group.add(chestL);
+            const chestR = chestL.clone();
+            chestR.position.set(0.16, 1.25, 0.15);
+            group.add(chestR);
+
+            // Head
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.25, 32, 32), skinMat);
+            head.position.y = 1.7;
+            group.add(head);
+
+            // Visor / Hair
+            const hair = new THREE.Mesh(new THREE.SphereGeometry(0.27, 32, 32, 0, 6.3, 0, 1.5), hairMat);
+            hair.position.y = 1.72;
+            group.add(hair);
+
+            // Visor (Cyber element)
+            const visorGeo = new THREE.BoxGeometry(0.3, 0.08, 0.15);
+            const visorMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1 });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 1.75, 0.2);
+            group.add(visor);
+
+            // Arms
+            const armGeo = new THREE.CylinderGeometry(0.07, 0.06, 0.7, 16);
+            const armL = new THREE.Mesh(armGeo, skinMat);
+            armL.position.set(-0.45, 1.3, 0);
+            armL.rotation.z = 0.2;
+            group.add(armL);
+            const armR = armL.clone();
+            armR.position.set(0.45, 1.3, 0);
+            armR.rotation.z = -0.2;
+            group.add(armR);
+
+            group.rotation.y = Math.PI;
+            scene.add(group);
+            return { group, hips, bikiniBottom: bikiniBot };
+        }
+
+        function createNeonRipple(pos) {
+            const geo = new THREE.RingGeometry(0.1, 0.15, 32);
+            const mat = new THREE.MeshBasicMaterial({ color: 0x00ffff, side: THREE.DoubleSide, transparent: true });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            mesh.position.z += 0.1;
+            mesh.lookAt(camera.position);
+            scene.add(mesh);
+
+            let s = 1;
+            const anim = () => {
+                s += 0.1;
+                mesh.scale.set(s, s, 1);
+                mat.opacity -= 0.05;
+                if(mat.opacity > 0) requestAnimationFrame(anim);
+                else { scene.remove(mesh); geo.dispose(); mat.dispose(); }
+            };
+            anim();
+        }
+
+        function playSynthSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(440 + Math.random()*200, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.2);
+                
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+                
+                osc.start();
+                osc.stop(ctx.currentTime + 0.2);
+            } catch(e) {}
+        }
+        
+        // Auto-save every 5 seconds
+        setInterval(() => { if(walletAddress) saveGame(); }, 5000);
+    </script>
+</body>
+</html>
