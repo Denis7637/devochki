@@ -731,7 +731,38 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <!-- Firebase SDK для глобального рейтинга -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script>
+        // Firebase Configuration - ЗАМЕНИТЕ НА СВОИ ДАННЫЕ!
+        // Создайте проект на https://console.firebase.google.com/
+        // Включите Realtime Database с правилами: {"rules": {".read": true, ".write": true}}
+        const firebaseConfig = {
+            apiKey: "AIzaSyDemo-REPLACE-WITH-YOUR-KEY",
+            authDomain: "neon-clicker-demo.firebaseapp.com",
+            databaseURL: "https://neon-clicker-demo-default-rtdb.firebaseio.com",
+            projectId: "neon-clicker-demo",
+            storageBucket: "neon-clicker-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        // Инициализация Firebase
+        let firebaseApp = null;
+        let database = null;
+        let firebaseEnabled = false;
+
+        try {
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            firebaseEnabled = true;
+            console.log('Firebase подключен');
+        } catch (error) {
+            console.warn('Firebase не настроен. Используется локальный режим:', error.message);
+            firebaseEnabled = false;
+        }
+
         // Solana integration
         let walletAddress = null;
         let isGuest = false;
@@ -1012,54 +1043,58 @@
         }
 
         // --- GAME SAVE/LOAD WITH PERSISTENT STORAGE ---
-        
+
+        // Генерируем уникальный ID для игрока
+        function getPlayerId() {
+            let id = localStorage.getItem('neon_clicker_player_id');
+            if (!id) {
+                id = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('neon_clicker_player_id', id);
+            }
+            return id;
+        }
+
         async function saveGame() {
             if (!walletAddress) return;
-            
+
             const saveData = {
                 ...gameState,
                 username: currentUsername,
                 lastSaved: Date.now()
             };
-            
-            try {
-                // Сохраняем личные данные игрока
-                await window.storage.set(`player_${walletAddress}`, JSON.stringify(saveData), false);
-                
-                // Обновляем лидерборд (общие данные)
-                await updateLeaderboard();
-                
-                console.log('Игра сохранена');
-            } catch (error) {
-                console.error('Ошибка сохранения:', error);
-                // Fallback to localStorage if storage API fails
-                localStorage.setItem('neon_clicker_' + walletAddress, JSON.stringify(saveData));
-            }
+
+            // Всегда сохраняем локально
+            localStorage.setItem('neon_clicker_save', JSON.stringify(saveData));
+
+            // Обновляем глобальный лидерборд через Firebase
+            await updateLeaderboard();
+
+            console.log('Игра сохранена');
         }
 
         async function loadGame() {
             if (!walletAddress) return;
-            
+
             try {
-                const result = await window.storage.get(`player_${walletAddress}`, false);
-                if (result && result.value) {
-                    const saveData = JSON.parse(result.value);
-                    Object.assign(gameState, saveData);
-                    console.log('Игра загружена');
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки:', error);
-                // Fallback to localStorage
-                const saved = localStorage.getItem('neon_clicker_' + walletAddress);
+                const saved = localStorage.getItem('neon_clicker_save');
                 if (saved) {
                     const saveData = JSON.parse(saved);
                     Object.assign(gameState, saveData);
+                    console.log('Игра загружена из localStorage');
                 }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
             }
         }
 
         async function updateLeaderboard() {
+            if (!firebaseEnabled || !database) {
+                console.log('Firebase не доступен, пропускаем обновление лидерборда');
+                return;
+            }
+
             try {
+                const playerId = getPlayerId();
                 const lbEntry = {
                     username: currentUsername,
                     level: gameState.level,
@@ -1067,76 +1102,102 @@
                     clicks: gameState.clicks,
                     timestamp: Date.now()
                 };
-                
-                // Сохраняем запись лидерборда (общая, доступна всем)
-                await window.storage.set(`leaderboard_${walletAddress}`, JSON.stringify(lbEntry), true);
+
+                // Сохраняем в Firebase Realtime Database
+                await database.ref('leaderboard/' + playerId).set(lbEntry);
+                console.log('Лидерборд обновлён');
             } catch (error) {
                 console.error('Ошибка обновления лидерборда:', error);
             }
         }
 
         async function loadLeaderboard() {
+            const tbody = document.getElementById('leaderboardBody');
+            const statusEl = document.getElementById('leaderboardStatus');
+
+            statusEl.textContent = 'Загрузка...';
+            tbody.innerHTML = '';
+
+            // Если Firebase не настроен, показываем локальные данные
+            if (!firebaseEnabled || !database) {
+                statusEl.innerHTML = `
+                    <div style="color: #ff6600; margin-bottom: 15px;">
+                        ⚠️ Firebase не настроен. Глобальный рейтинг недоступен.
+                    </div>
+                    <div style="font-size: 0.8rem; color: #888;">
+                        Для включения глобального рейтинга:<br>
+                        1. Создайте проект на <a href="https://console.firebase.google.com/" target="_blank" style="color: var(--secondary);">Firebase Console</a><br>
+                        2. Создайте Realtime Database<br>
+                        3. Замените firebaseConfig в коде
+                    </div>
+                `;
+
+                // Показываем локального игрока
+                const tr = document.createElement('tr');
+                tr.classList.add('current-user');
+                tr.innerHTML = `
+                    <td class="rank-1" style="font-family: 'Orbitron'; font-weight: bold;">#1</td>
+                    <td style="font-family: 'Orbitron';">${currentUsername} (ВЫ)</td>
+                    <td>${gameState.level}</td>
+                    <td style="color: var(--accent);">${Math.floor(gameState.coins).toLocaleString()}</td>
+                    <td style="color: #aaa;">${gameState.clicks.toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+                return;
+            }
+
             try {
-                document.getElementById('leaderboardStatus').textContent = 'Загрузка...';
-                
-                // Получаем все ключи лидерборда
-                const result = await window.storage.list('leaderboard_', true);
-                
-                if (!result || !result.keys) {
-                    document.getElementById('leaderboardStatus').textContent = 'Рейтинг пуст. Будьте первым!';
+                // Загружаем топ-50 по монетам из Firebase
+                const snapshot = await database.ref('leaderboard')
+                    .orderByChild('coins')
+                    .limitToLast(50)
+                    .once('value');
+
+                const data = snapshot.val();
+
+                if (!data) {
+                    statusEl.textContent = 'Рейтинг пуст. Будьте первым!';
                     return;
                 }
-                
-                // Загружаем данные каждого игрока
-                const players = [];
-                for (const key of result.keys) {
-                    try {
-                        const playerData = await window.storage.get(key, true);
-                        if (playerData && playerData.value) {
-                            players.push(JSON.parse(playerData.value));
-                        }
-                    } catch (e) {
-                        console.error('Ошибка загрузки игрока:', e);
-                    }
-                }
-                
-                // Сортируем по монетам
-                players.sort((a, b) => b.coins - a.coins);
-                
-                // Отображаем топ-50
-                const tbody = document.getElementById('leaderboardBody');
-                tbody.innerHTML = '';
-                
-                const top50 = players.slice(0, 50);
-                top50.forEach((player, index) => {
+
+                // Преобразуем в массив и сортируем по убыванию монет
+                const players = Object.values(data).sort((a, b) => b.coins - a.coins);
+
+                players.forEach((player, index) => {
                     const rank = index + 1;
                     const isCurrentUser = player.username === currentUsername;
-                    
+
                     const tr = document.createElement('tr');
                     if (isCurrentUser) tr.classList.add('current-user');
-                    
+
                     let rankClass = '';
                     if (rank === 1) rankClass = 'rank-1';
                     else if (rank === 2) rankClass = 'rank-2';
                     else if (rank === 3) rankClass = 'rank-3';
-                    
+
                     tr.innerHTML = `
                         <td class="${rankClass}" style="font-family: 'Orbitron'; font-weight: bold;">#${rank}</td>
-                        <td style="font-family: 'Orbitron';">${player.username}${isCurrentUser ? ' (ВЫ)' : ''}</td>
+                        <td style="font-family: 'Orbitron';">${escapeHtml(player.username)}${isCurrentUser ? ' (ВЫ)' : ''}</td>
                         <td>${player.level}</td>
                         <td style="color: var(--accent);">${player.coins.toLocaleString()}</td>
                         <td style="color: #aaa;">${player.clicks.toLocaleString()}</td>
                     `;
                     tbody.appendChild(tr);
                 });
-                
-                document.getElementById('leaderboardStatus').textContent = 
-                    `Всего игроков: ${players.length} | Обновлено: ${new Date().toLocaleTimeString()}`;
-                    
+
+                statusEl.textContent = `Всего игроков: ${players.length} | Обновлено: ${new Date().toLocaleTimeString()}`;
+
             } catch (error) {
                 console.error('Ошибка загрузки лидерборда:', error);
-                document.getElementById('leaderboardStatus').textContent = 'Ошибка загрузки рейтинга';
+                statusEl.textContent = 'Ошибка загрузки рейтинга: ' + error.message;
             }
+        }
+
+        // Функция для экранирования HTML (защита от XSS)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // --- GAME LOGIC ---
